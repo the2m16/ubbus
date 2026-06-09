@@ -6,7 +6,7 @@
 <body> <div id="map"></div> <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
     <script> // Газрын зургийн объектыг үүсгэж, анхны харагдах төв цэг болон Zoom-ийг тохируулна
-        const map = L.map('map').setView([47.9188, 106.9176], 13); 
+        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([47.9188, 106.9176], 13); 
 
         // Картын суурь давхаргад CartoDB-ийн Dark Matter (Бараан загвар) зургийг холбоно
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
