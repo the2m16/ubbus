@@ -79,7 +79,36 @@
         }
 
         /* Чиглэлийн жагсаалт */
-        .route-list { padding: 15px; overflow-y: auto; flex-grow: 1; }
+        .route-list { 
+    padding: 15px; 
+    overflow-y: auto; 
+    flex-grow: 1; 
+    
+    /* 🌟 ШИНЭ: Firefox хөтөчид зориулсан нарийхан скролл */
+    scrollbar-width: thin;
+    scrollbar-color: #444444 transparent;
+}
+
+/* 🌟 ШИНЭ: Chrome, Safari, Edge хөтөч болон гар утсанд зориулсан скролл зураасны загвар */
+.route-list::-webkit-scrollbar {
+    width: 4px; /* Скроллыг маш нарийхан (ердөө 4px) болгоно */
+}
+
+/* Скролл гүйгч гүдгэр хэсгийн загвар */
+.route-list::-webkit-scrollbar-thumb {
+    background-color: #444444; /* Харанхуй саарал өнгө (арын фонтой уусна) */
+    border-radius: 10px;       /* Буланг нь мөлгөр дугуй болгоно */
+}
+
+/* Хулганаа дээр нь аваачих үед үл ялиг тодрох хэсэг */
+.route-list::-webkit-scrollbar-thumb:hover {
+    background-color: #0099ff; /* Таны сонгосон автобусны цэнхэр өнгөөр тодорно */
+}
+
+/* Скроллын арын суурь суваг */
+.route-list::-webkit-scrollbar-track {
+    background: transparent;   /* Арын фоныг таг тунгалаг болгож нууна */
+}
 
         .route-item { 
             display: flex; align-items: center; margin-bottom: 10px; 
