@@ -1,4 +1,4 @@
-[
+const busData = [
 {
       "direction": "West",
       "latitude": 47.998526,
