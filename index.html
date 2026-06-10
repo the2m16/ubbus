@@ -1,11 +1,299 @@
 <!DOCTYPE html> <html lang="mn"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /> <title>Responsive Dark Map with Excel GPS Points</title> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     
-    <style> html, body { height: 100%; margin: 0; padding: 0; background-color: #111; }
-        #map { width: 100%; height: 100%; }
-    </style> </head>
-<body> <div id="map"></div> <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+    html, body { height: 100%; margin: 0; padding: 0; background-color: #111; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    #map { width: 100%; height: 100%; position: absolute; top:0; bottom:0; left:0; right:0; z-index: 1; }
+
+    /* ЗҮҮН ирмэгт байрлах цэнхэр жижиг хавчуурга (Tab) */
+    .sidebar-tab {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        z-index: 1000;
+        background: #007bff; /* Цэнхэр өнгө */
+        color: #fff;
+        padding: 12px 3px;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 0 4px 4px 0; /* Зүүн талдаа наалдаж, баруун тийш дугуйрах */
+        box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        text-orientation: mixed;
+        letter-spacing: 1px;
+        user-select: none;
+        transition: background 0.2s, left 0.3s ease;
+    }
+    .sidebar-tab:hover { background: #0056b3; }
+    .sidebar-tab.hidden { left: -40px; } /* Цонх нээгдэхэд нуугдана */
+
+    /* ЗҮҮН талаас нээгддэг хагас тунгалаг цонх */
+    .sidebar {
+        position: absolute;
+        top: 0;
+        left: -450px; /* Зүүн талд нуугдмал */
+        width: 420px;
+        height: 100%;
+        background: rgba(20, 20, 20, 0.1); /* Хагас тунгалаг хар */
+        backdrop-filter: blur(3px); /* Арын газрын зургийг бүрсийлгэх */
+        -webkit-backdrop-filter: blur(3px);
+        z-index: 1001;
+        box-shadow: 5px 0 25px rgba(0,0,0,0.5);
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        color: #fff;
+        border-right: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .sidebar.open { left: 0; }
+
+    /* Цонхны толгой */
+    .sidebar-header {
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-header h3 { margin: 0; font-size: 13px; font-weight: 500; color: #ffff80; }
+    .close-btn {
+        background: none;
+        border: none;
+        color: #aaa;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+    .close-btn:hover { color: #fff; }
+
+    /* Хайлтын хэсэг */
+    .search-box { padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .search-box input {
+        width: 100%;
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 13px;
+        box-sizing: border-box;
+        outline: none;
+    }
+    .search-box input:focus { border-color: #007bff; background: rgba(255, 255, 255, 0.12); }
+
+    /* Жагсаалт гүйх хэсэг */
+    .route-list { overflow-y: auto; flex: 1; padding: 5px 10px; }
+    .route-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .route-item:hover { color: #ffff80; }
+    .route-item input[type="checkbox"] {
+        margin-right: 10px;
+        width: 15px;
+        height: 15px;
+        accent-color: #007bff;
+        cursor: pointer;
+    }
+    .route-text { font-size: 13px; line-height: 1.0; word-break: break-word; cursor: pointer; display: flex; align-items: center; width: 100%; }
+    .route-code { font-weight: 500; color: #ffff80; margin-right: 6px; white-space: nowrap; }
+
+    .route-list::-webkit-scrollbar { width: 4px; }
+    .route-list::-webkit-scrollbar-track { background: transparent; }
+    .route-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+</style> </head>
+<body>
+<div id="sidebarTab" class="sidebar-tab" onclick="toggleSidebar(true)">></div>
+
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+        <h3>Автобусны чиглэлүүд</h3>
+        <button class="close-btn" onclick="toggleSidebar(false)">×</button>
+    </div>
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Код, дугаар, нэрээр хайх..." oninput="filterRoutes()">
+    </div>
+    <div id="routeList" class="route-list">
+        </div>
+</div>
+<div id="map"></div> <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
-    <script> // Газрын зургийн объектыг үүсгэж, анхны харагдах төв цэг болон Zoom-ийг тохируулна
+    <script>
+
+
+// Sidebar нээж хаах функц
+function toggleSidebar(open) {
+    const sidebar = document.getElementById('sidebar');
+    const tab = document.getElementById('sidebarTab');
+    if (open) {
+        sidebar.classList.add('open');
+        tab.classList.add('hidden');
+    } else {
+        sidebar.classList.remove('open');
+        tab.classList.remove('hidden');
+    }
+}
+
+// `чиглэл.xlsx` файлаас авсан бүх 117 чиглэл
+const routesData = [
+    {code: "Д:1", name: "Шар хадны эцэс - Ботаник"},
+    {code: "Д:2", name: "39-р сургууль - 149-р сургууль"},
+    {code: "Д:4", name: "Хайрханы Эцэс - 11-р Байр"},
+    {code: "Д:5", name: "Гандан - Хүчит Шонхор"},
+    {code: "Д:6", name: "Гачууртын эцэс - Шар Хоолойн Ам"},
+    {code: "ЗҮ:1", name: "Гүнт - Жигжид - Тэнгис кино театр"},
+    {code: "ЗҮ:2", name: "Гоодой - Тэнгис кино театр"},
+    {code: "ЗҮ:3", name: "Баянбулаг - Тэнгис кино театр"},
+    {code: "М:1", name: "5 шар - Офицеруудын ордон"},
+    {code: "М:2", name: "Зунжин худалдааны төв - Сүхбаатарын талбай"},
+    {code: "М:3", name: "Архивын ерөнхий газар - Сүхбаатарын талбай"},
+    {code: "М:4", name: "Шархад - 3.4-р хороолол - Гэмтлийн эмнэлэг"},
+    {code: "М:5", name: "Ботаник - 10-р хороолол"},
+    {code: "М:6", name: "ТЭЦ-3 - Шинэ 100 айл - Монгол тэмүүлэл сургууль"},
+    {code: "Х:1", name: "Санзайн эцэс - Зунжин худалдааны - 7 буудал"},
+    {code: "Х:10", name: "Эмээлт /хурган/ - 5 шар"},
+    {code: "Х:11", name: "Хүй 7 худаг - Эмээлт /хурган/ - 5 шар"},
+    {code: "Х:13", name: "Мал бордох - 5 шар"},
+    {code: "Х:14", name: "Баруун туруун - 5 шар"},
+    {code: "Х:15", name: "Түргэний ам /Кувейтын ам/ - 120 мянгат"},
+    {code: "Х:16", name: "Био комбинат - 120 мянгат"},
+    {code: "Х:17", name: "Шувуун фабрик - 120 мянгат"},
+    {code: "Х:18", name: "Төв аймаг салбартай уулзвар - 120 мянгат"},
+    {code: "Х:19", name: "Өлзийт хороолол - 120 мянгат"},
+    {code: "Х:2", name: "Шарга морьт - 7 буудал"},
+    {code: "Х:3", name: "Городок - Офицеруудын ордон"},
+    {code: "Х:4", name: "Тэрэлж - Офицеруудын ордон"},
+    {code: "Х:5", name: "Налайх - Офицеруудын ордон"},
+    {code: "Х:6", name: "Өгөөмөр /Налайх/ - Офицеруудын ордон"},
+    {code: "Х:7", name: "Хонхор - Офицеруудын ордон"},
+    {code: "Х:8", name: "Хүүшийн ам - Офицеруудын ордон"},
+    {code: "Х:9", name: "Малын зах - 5 шар"},
+    {code: "ХО:1", name: "Багануур - Улаанбаатар"},
+    {code: "ХО:10", name: "Галт - Улаанбаатар"},
+    {code: "ХО:2", name: "Төв аймаг Зуунмод - Улаанбаатар"},
+    {code: "ХО:3", name: "Гордок - Улаанбаатар"},
+    {code: "ХО:4", name: "Тэрэлж - Улаанбаатар"},
+    {code: "ХО:5", name: "Налайх - Улаанбаатар"},
+    {code: "ХО:6", name: "Багахангай - Улаанбаатар"},
+    {code: "ХО:7", name: "Шивээ овоо - Улаанбаатар"},
+    {code: "ХО:8", name: "Чойр - Улаанбаатар"},
+    {code: "ХО:9", name: "Бор-Өндөр - Улаанбаатар"},
+    {code: "Ч:1", name: "Таван шар - Ботаник"},
+    {code: "Ч:10", name: "Гандан - Хүчит шонхор худалдааны төв"},
+    {code: "Ч:11", name: "Хужирбулан - Тэнгис кино театр"},
+    {code: "Ч:12", name: "Жанжин клуб - МУБИС - Баянбүрд - Хүнсний 4-р дэлгүүр"},
+    {code: "Ч:13", name: "Хайлааст - Тэнгис кино театр"},
+    {code: "Ч:15", name: "Нисэх - Төв номын сан - 11-р хороолол"},
+    {code: "Ч:17", name: "Баруунсалаа - Тэнгис кино театр"},
+    {code: "Ч:17б", name: "Баруунсалаа - Тэнгис кино театр"},
+    {code: "Ч:18А", name: "3,4-р хороолол - ТЭЦ-3"},
+    {code: "Ч:18Б", name: "3,4-р хороолол - ТЭЦ-3"},
+    {code: "Ч:2", name: "Шархад - Сүхбаатарын талбай"},
+    {code: "Ч:21А", name: "Булгын эцэс - Вокзал"},
+    {code: "Ч:21Б", name: "Булгын эцэс - Вокзал"},
+    {code: "Ч:22", name: "Шадивлан - Тэнгис кино театр"},
+    {code: "Ч:23", name: "Чингэлтэй - Тэнгис кино театр"},
+    {code: "Ч:24", name: "Зунжин худалдааны төв - Тэнгис кино театр"},
+    {code: "Ч:25", name: "Толгойт - Баянхошуу - Тэнгис кино театр"},
+    {code: "Ч:27", name: "Вокзал - Сүхбаатарын талбай"},
+    {code: "Ч:28", name: "Сэлх - Тэнгис кино театр"},
+    {code: "Ч:29", name: "Сэлбэ амралт - Тэнгис кино театр"},
+    {code: "Ч:3", name: "Зүүнсалаа - Тэнгис кино театр"},
+    {code: "Ч:30", name: "Жанжин клуб - МУБИС - Ард кино театр"},
+    {code: "Ч:31", name: "Улиастай - МУБИС - Тэнгис кино театр"},
+    {code: "Ч:32", name: "Улаанхуаран - Тэнгис кино театр"},
+    {code: "Ч:33", name: "Шархад - МУБИС - Вокзал"},
+    {code: "Ч:34", name: "Шархад - Сансар - Тэнгис кино театр"},
+    {code: "Ч:35", name: "Морингийн даваа - Вокзал"},
+    {code: "Ч:36", name: "Яармаг - Тэнгис кино театр"},
+    {code: "Ч:38", name: "Хайлааст - Тэнгис кино театр"},
+    {code: "Ч:39", name: "Үлгэр жишээ хороолол - Тэнгис кино театр"},
+    {code: "Ч:4", name: "Хүүхдийн ордон - Цэцэг төв - МУИС"},
+    {code: "Ч:41", name: "Баруунсалаа - Халдвартын эмнэлэг"},
+    {code: "Ч:42", name: "Зүүнсалаа - Халдвартын эмнэлэг"},
+    {code: "Ч:43", name: "Баянхошуу - Халдвартын эмнэлэг"},
+    {code: "Ч:44", name: "Гэмтлийн эмнэлэг - Халдвартын эмнэлэг"},
+    {code: "Ч:45", name: "Гандан - Халдвартын эмнэлэг"},
+    {code: "Ч:46", name: "Хайлааст - Халдвартын эмнэлэг"},
+    {code: "Ч:47", name: "Чингэлтэй - Халдвартын эмнэлэг"},
+    {code: "Ч:48", name: "Зунжин худалдааны төв - Халдвартын эмнэлэг"},
+    {code: "Ч:49", name: "Булгын эцэс - Халдвартын эмнэлэг"},
+    {code: "Ч:5", name: "Гэмтлийн эмнэлэг - Их тойруу - МУБИС"},
+    {code: "Ч:50", name: "Улаанчулуут - Халдвартын эмнэлэг"},
+    {code: "Ч:51", name: "Толгойт - Халдвартын эмнэлэг"},
+    {code: "Ч:52", name: "9-р байр - Халдвартын эмнэлэг"},
+    {code: "Ч:53", name: "Яармагийн эцэс - МУБИС"},
+    {code: "Ч:54", name: "Яармагийн эцэс - Баянхошуу"},
+    {code: "Ч:55", name: "Автобус бааз - Зайсан"},
+    {code: "Ч:57", name: "Улаанчулуут - Монгол Улсын Их Сургууль"},
+    {code: "Ч:57Б", name: "Алтан овоо 48-р гудамж - МУИС"},
+    {code: "Ч:58", name: "ТЭЦ-3 - 3,4-р хороололын эцэс"},
+    {code: "Ч:6", name: "Толгойт - 10-р хороолол"},
+    {code: "Ч:61", name: "ТЭЦ-3 - Офицеруудын ордон"},
+    {code: "Ч:62", name: "Алтан овоо 48-р гудамж - 10-р хороолол"},
+    {code: "Ч:63", name: "Хан Хиллс - МУБИС"},
+    {code: "Ч:64", name: "Цагаан давааны задгай - Халдвартын эмнэлэг"},
+    {code: "Ч:65", name: "Зайсан - Офицеруудын ордон"},
+    {code: "Ч:66", name: "Зайсан - 11-р хороолол"},
+    {code: "Ч:67", name: "Морин 3 - Нисэх"},
+    {code: "Ч:68", name: "Архивын ерөнхий газар - Нисэхийн шинэ эцэс"},
+    {code: "Ч:69Б", name: "Гэмтлийн эмнэлэг - Англи сургууль"},
+    {code: "Ч:7", name: "Нисэх -Ард кино театр"},
+    {code: "Ч:70", name: "ТЭЦ-3 - Бөмбөгөр - Ард кино театр"},
+    {code: "Ч:71", name: "Дүнжингарав Худалдааны төв - 120 мянгат"},
+    {code: "Ч:72", name: "Ботаник - П.Н.Шастины нэрэмжит 3-р эмнэлэг"},
+    {code: "Ч:73", name: "Зүүн салаа - Нийслэлийн шүүх шийдвэр гүйцэтгэх газар"},
+    {code: "Ч:74", name: "Цагаан давааны задгай - Вокзал"},
+    {code: "Ч:75", name: "Шархад - Вокзал"},
+    {code: "Ч:76", name: "Амгалан - Вокзал"},
+    {code: "Ч:77", name: "Улаанхуаран - Вокзал"},
+    {code: "Ч:78", name: "Хужирбулан - Вокзал"},
+    {code: "Ч:79", name: "Баянхошуу - Вокзал"},
+    {code: "Ч:8", name: "Хайлааст - Вокзал"},
+    {code: "Ч:80", name: "Баруунсалаа - Вокзал"},
+    {code: "Ч:9", name: "Чингэлтэй - Вокзал"}
+];
+
+// Чиглэлийг рэндэрлэх
+function renderRoutes(data) {
+    const listContainer = document.getElementById('routeList');
+    listContainer.innerHTML = '';
+    data.forEach(route => {
+        const item = document.createElement('div');
+        item.className = 'route-item';
+        item.innerHTML = `
+            <input type="checkbox" id="chk-${route.code}" value="${route.code}">
+            <label class="route-text" for="chk-${route.code}">
+                <span class="route-code">${route.code}</span> <span>${route.name}</span>
+            </label>
+        `;
+        listContainer.appendChild(item);
+    });
+}
+
+// Бодит цагийн шүүлтүүр (Хайлт)
+function filterRoutes() {
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+    const filtered = routesData.filter(route => {
+        const codeMatch = route.code.toLowerCase().includes(query);
+        const nameMatch = route.name.toLowerCase().includes(query);
+        const cleanNumberQuery = query.replace(/[^\d]/g, '');
+        const numberMatch = cleanNumberQuery && route.code.includes(cleanNumberQuery);
+        return codeMatch || nameMatch || numberMatch;
+    });
+    renderRoutes(filtered);
+}
+
+// Анхны ачаалалт
+renderRoutes(routesData);
+
+
+
+
+
+// Газрын зургийн объектыг үүсгэж, анхны харагдах төв цэг болон Zoom-ийг тохируулна
         const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([47.9188, 106.9176], 13); 
 
         // Картын суурь давхаргад CartoDB-ийн Dark Matter (Бараан загвар) зургийг холбоно
