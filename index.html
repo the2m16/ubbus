@@ -114,22 +114,20 @@
 
 /* 1. Зогсоолын Плпап жижиг цонхны үндсэн арын фон болон хүрээг өөрчлөх */
 .leaflet-popup-content-wrapper {
-    background-color: #1a1a1a !important; /* Хажуугийн цэстэй ижил хар саарал өнгө */
+    background-color: #333333 !important; /* Хажуугийн цэстэй ижил хар саарал өнгө */
     color: #ffffff !important;            /* Үндсэн бичвэрийг цагаан болгох */
-    border: 2px solid #ff7800 !important; /* Хүрээг автобусны цэгтэй ижил улбар шар болгох */
     border-radius: 6px !important;        /* Буланг нь үл ялиг дугуйлах */
     box-shadow: 0 3px 14px rgba(0,0,0,0.5) !important; /* Сүүдрийг илүү тод болгох */
 }
 
 /* 2. Цонхны доор байрлах жижиг гурвалжин сумны өнгийг тааруулах */
 .leaflet-popup-tip {
-    background-color: #1a1a1a !important; /* Сумны арын фоныг цонхтой ижил болгоно */
-    border: 2px solid #ff7800 !important; /* Сумны хүрээг улбар шар болгоно */
+    background-color: #333333 !important; /* Сумны арын фоныг цонхтой ижил болгоно */
 }
 
 /* 3. Хэрэв доторх текстийн өнгийг нарийвчлах бол (Жишээ нь: "Дайрах чиглэлүүд" гэдэг бичвэр) */
 .leaflet-popup-content {
-    color: #ffffff !important;
+    color: #666666 !important;
     font-family: Arial, sans-serif;
     margin: 12px 15px !important; /* Дотор талын зайг цэгцлэх */
 }
@@ -378,9 +376,9 @@ function showRouteStations(routeAlias) {
             marker.bindPopup(`
                 <div style="font-family: Arial, sans-serif; line-height: 1.3; font-size: 0.95rem;">
                     Зогсоол: <b>${station.stationName || 'Нэргүй зогсоол'}</b><br>
-                    Чиглэл: <span style="color: #555; font-size: 0.95rem;">${station.routeName || routeAlias}</span>
+                    Чиглэл: <span style="color: #ffffff; font-size: 0.95rem;">${station.routeName || routeAlias}</span>
                     <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid #ccc; font-size: 0.85rem;">
-                        Зогсдог чиглэл: <span style="color: #777777; font-weight: bold;">${routesText}</span>
+                        Дайрдаг бусад чиглэл: <span style="color: #ffffff; font-weight: bold;">${routesText}</span>
                     </div>
                 </div>
             `);
