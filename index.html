@@ -43,7 +43,7 @@
             color: #888;
             font-size: 1.4rem;
             cursor: pointer;
-            font-weight: bold;
+            font-weight: regular;
             padding: 0;
             line-height: 1;
             transition: color 0.2s ease;
@@ -88,10 +88,9 @@
             color: white; 
             border: 1px solid #333; 
             border-left: none; /* Зүүн талын хүрээг байхгүй болгож ирмэгт наана */
-            padding: 15px 10px; /* Дээш доош урт хавчуурга хэлбэртэй болгосон */
-            border-radius: 0 8px 8px 0; /* Зөвхөн баруун талын булангуудыг дугуйлна */
+            padding: 25px 1px; /* Дээш доош урт хавчуурга хэлбэртэй болгосон */
+            border-radius: 0 4px 4px 0; /* Зөвхөн баруун талын булангуудыг дугуйлна */
             cursor: pointer; 
-            font-weight: bold; 
             box-shadow: 2px 0 5px rgba(0,0,0,0.3);
             writing-mode: vertical-lr; /* Текстийг дээрээс доош босоо уншигддаг болгоно */
             text-orientation: mixed;
@@ -129,7 +128,7 @@
         <div class="route-list" id="route-list">Дата уншиж байна...</div>
     </div>
 
-    <button class="toggle-btn" id="toggle-btn">☰ ЦЭС</button>
+    <button class="toggle-btn" id="toggle-btn"> > </button>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
