@@ -1,109 +1,79 @@
-<!DOCTYPE html> <html lang="mn"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /> <title>Responsive Dark Map with Excel GPS Points</title> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    
-<style>
-    html, body { height: 100%; margin: 0; padding: 0; background-color: #111; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    #map { width: 100%; height: 100%; position: absolute; top:0; bottom:0; left:0; right:0; z-index: 1; }
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>УБ Автобусны Чиглэл</title>
 
-    /* ЗҮҮН ирмэгт байрлах цэнхэр жижиг хавчуурга (Tab) */
-    .sidebar-tab {
-        position: absolute;
-        top: 50%;
-        left: 0;
-        transform: translateY(-50%);
-        z-index: 1000;
-        background: #007bff; /* Цэнхэр өнгө */
-        color: #fff;
-        padding: 12px 3px;
-        font-size: 14px;
-        cursor: pointer;
-        border-radius: 0 4px 4px 0; /* Зүүн талдаа наалдаж, баруун тийш дугуйрах */
-        box-shadow: 2px 0 10px rgba(0,0,0,0.3);
-        text-orientation: mixed;
-        letter-spacing: 1px;
-        user-select: none;
-        transition: background 0.2s, left 0.3s ease;
-    }
-    .sidebar-tab:hover { background: #0056b3; }
-    .sidebar-tab.hidden { left: -40px; } /* Цонх нээгдэхэд нуугдана */
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-    /* ЗҮҮН талаас нээгддэг хагас тунгалаг цонх */
-    .sidebar {
-        position: absolute;
-        top: 0;
-        left: -450px; /* Зүүн талд нуугдмал */
-        width: 420px;
-        height: 100%;
-        background: rgba(20, 20, 20, 0.1); /* Хагас тунгалаг хар */
-        backdrop-filter: blur(3px); /* Арын газрын зургийг бүрсийлгэх */
-        -webkit-backdrop-filter: blur(3px);
-        z-index: 1001;
-        box-shadow: 5px 0 25px rgba(0,0,0,0.5);
-        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        flex-direction: column;
-        color: #fff;
-        border-right: 1px solid rgba(255, 255, 255, 0.07);
-    }
-    .sidebar.open { left: 0; }
+    <style>
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: Arial, sans-serif; overflow: hidden;
+        }
 
-    /* Цонхны толгой */
-    .sidebar-header {
-        padding: 10px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .sidebar-header h3 { margin: 0; font-size: 13px; font-weight: 500; color: #ffff80; }
-    .close-btn {
-        background: none;
-        border: none;
-        color: #aaa;
-        font-size: 24px;
-        cursor: pointer;
-        padding: 0;
-        line-height: 1;
-    }
-    .close-btn:hover { color: #fff; }
+        #map { width: 100%; height: 100%; z-index: 1; }
 
-    /* Хайлтын хэсэг */
-    .search-box { padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .search-box input {
-        width: 100%;
-        padding: 10px 12px;
-        background: rgba(255, 255, 255, 0.07);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 6px;
-        color: #fff;
-        font-size: 13px;
-        box-sizing: border-box;
-        outline: none;
-    }
-    .search-box input:focus { border-color: #007bff; background: rgba(255, 255, 255, 0.12); }
+        /* Зүүн хажуугийн цэс */
+        .sidebar { 
+            position: absolute; top: 0; left: -320px; width: 300px; height: 100%; 
+            background-color: #1a1a1a; color: #ffffff; 
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5); 
+            transition: left 0.3s ease; z-index: 1000; 
+            display: flex; flex-direction: column; 
+        }
 
-    /* Жагсаалт гүйх хэсэг */
-    .route-list { overflow-y: auto; flex: 1; padding: 5px 10px; }
-    .route-item {
-        display: flex;
-        align-items: center;
-        padding: 6px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.03);
-    }
-    .route-item:hover { color: #ffff80; }
-    .route-item input[type="checkbox"] {
-        margin-right: 10px;
-        width: 15px;
-        height: 15px;
-        accent-color: #007bff;
-        cursor: pointer;
-    }
-    .route-text { font-size: 13px; line-height: 1.0; word-break: break-word; cursor: pointer; display: flex; align-items: center; width: 100%; }
-    .route-code { font-weight: 500; color: #ffff80; margin-right: 6px; white-space: nowrap; }
+        .sidebar.active { left: 0; }
 
-    .route-list::-webkit-scrollbar { width: 4px; }
-    .route-list::-webkit-scrollbar-track { background: transparent; }
-    .route-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-</style>
+        .sidebar-header { 
+            padding: 20px; background-color: #262626; 
+            font-size: 1.2rem; font-weight: bold; 
+        }
+
+        /* Хайлтын хэсэг */
+        .search-container {
+            padding: 0 15px 15px 15px;
+            background-color: #262626;
+            border-bottom: 1px solid #333;
+        }
+
+        #route-search {
+            width: 100%; padding: 10px; border-radius: 4px; 
+            border: 1px solid #444; background-color: #1a1a1a; 
+            color: #fff; box-sizing: border-box; font-size: 1rem;
+        }
+
+        /* Чиглэлийн жагсаалт уншигдах талбар */
+        .route-list { padding: 15px; overflow-y: auto; flex-grow: 1; }
+
+        .route-item { 
+            display: flex; align-items: center; margin-bottom: 14px; 
+            cursor: pointer; font-size: 1.1rem; /* Текстийн хэмжээг томруулсан */
+            line-height: 1.4;
+        }
+
+        .route-item input { margin-right: 12px; transform: scale(1.2); cursor: pointer; }
+
+        /* Цэс нээх хаах товчлуур */
+        .toggle-btn { 
+            position: absolute; top: 15px; left: 15px; z-index: 999; 
+            background-color: #1a1a1a; color: white; border: 1px solid #333; 
+            padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .toggle-btn:hover { background-color: #333333; }
+
+        .sidebar.active + .toggle-btn { left: 315px; transition: left 0.3s ease; }
+
+        .error-msg { color: #ff4d4d; padding: 10px; font-size: 0.9rem; }
+
+        @media (max-width: 480px) { 
+            .sidebar { width: 85%; left: -90%; }
+            .sidebar.active + .toggle-btn { left: calc(85% + 15px); }
+        }
+    </style>
 </head>
 <body>
 
