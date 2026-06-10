@@ -61,9 +61,9 @@
         }
 
         #route-search {
-            width: 100%; padding: 10px; border-radius: 4px; 
+            width: 100%; padding: 8px; border-radius: 4px; 
             border: 1px solid #444; background-color: #1a1a1a; 
-            color: #fff; box-sizing: border-box; font-size: 1rem;
+            color: #fff; box-sizing: border-box; font-size: 0.8rem;
         }
 
         /* Чиглэлийн жагсаалт */
@@ -118,7 +118,7 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             АВТОБУСНЫ ЧИГЛЭЛҮҮД
-            <button class="close-btn" id="close-btn">X</button>
+            <button class="close-btn" id="close-btn">х</button>
         </div>
         
         <div class="search-container">
@@ -262,7 +262,7 @@
 
                 if (!isNaN(lat) && !isNaN(lng)) { 
                     const marker = L.circleMarker([lat, lng], {
-                        radius: 6, fillColor: "#ff7800", color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 
+                        radius: 1, fillColor: "#ffff80", color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 
                     });
 
                     marker.bindPopup(`<b>Чиглэл:</b> ${station.routeName || routeAlias}<br><b>Зогсоол:</b> ${station.stationName || station.stationAlias || 'Нэргүй зогсоол'}`);
