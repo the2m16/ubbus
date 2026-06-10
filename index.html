@@ -122,15 +122,20 @@
                 const routes = [...new Set(data.map(item => item[aliasKey]).filter(Boolean))]; 
                 routes.sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
                 
-                routes.forEach(route => { 
+routes.forEach(route => { 
+                    // 2. 🌟 ТУХАЙН ЧИГЛЭЛИЙН БҮТЭН НЭРИЙГ (routeName) ЖИШЭЭ БОЛГОЖ НЭГ ДАТАГААС НЬ ХАЙЖ ОЛОХ
+                    const routeInfo = data.find(item => item.routeAlias === route);
+                    const fullRouteName = routeInfo && routeInfo.routeName ? routeInfo.routeName : route;
+
                     const label = document.createElement('label'); 
                     label.className = 'route-item'; 
                     
                     const checkbox = document.createElement('input'); 
                     checkbox.type = 'checkbox'; 
-                    checkbox.value = route; 
+                    checkbox.value = route; // Чекбокс ажиллахад код нь хэвээрээ байна
                     
-                    const text = document.createTextNode(route); 
+                    // 3. 🌟 ДЭЛГЭЦЭНД ХАРАГДАХ ТЕКСТД БҮТЭН НЭРИЙГ НЬ ОНООЖ ӨГӨХ
+                    const text = document.createTextNode(fullRouteName); 
                     
                     label.appendChild(checkbox); 
                     label.appendChild(text); 
@@ -138,7 +143,7 @@
 
                     checkbox.addEventListener('change', (e) => { 
                         if (e.target.checked) { 
-                            showRouteStations(e.target.value, aliasKey, nameKey); 
+                            showRouteStations(e.target.value, 'routeAlias', 'routeName'); 
                         } else { 
                             removeRouteStations(e.target.value); 
                         }
