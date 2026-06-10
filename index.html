@@ -122,7 +122,7 @@
                 const routes = [...new Set(data.map(item => item[aliasKey]).filter(Boolean))]; 
                 routes.sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
                 
-routes.forEach(route => { 
+                routes.forEach(route => { 
                     // 2. 🌟 ТУХАЙН ЧИГЛЭЛИЙН БҮТЭН НЭРИЙГ (routeName) ЖИШЭЭ БОЛГОЖ НЭГ ДАТАГААС НЬ ХАЙЖ ОЛОХ
                     const routeInfo = data.find(item => item.routeAlias === route);
                     const fullRouteName = routeInfo && routeInfo.routeName ? routeInfo.routeName : route;
@@ -172,7 +172,7 @@ routes.forEach(route => {
 
                 if (!isNaN(lat) && !isNaN(lng)) { 
                     const marker = L.circleMarker([lat, lng], {
-                        radius: 6, fillColor: "#ff7800", color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 
+                        radius: 1, fillColor: "#ffff80", color: "#000000", weight: 20, opacity: 0.0, fillOpacity: 1.0 
                     });
 
                     marker.bindPopup(`<b>Чиглэл:</b> ${station[nameKey]}<br><b>Зогсоол:</b> ${station[stationNameKey] || 'Нэргүй зогсоол'}`);
