@@ -16,7 +16,7 @@
         #map { width: 100%; height: 100%; z-index: 1; }
 
         .sidebar { 
-            position: absolute; top: 0; left: -320px; width: 300px; height: 100%; 
+            position: absolute; top: 0; left: -420px; width: 400px; height: 100%; 
             background-color: #1a1a1a; color: #ffffff; 
             box-shadow: 2px 0 10px rgba(0,0,0,0.5); 
             transition: left 0.3s ease; z-index: 1000; 
@@ -26,8 +26,8 @@
         .sidebar.active { left: 0; }
 
         .sidebar-header { 
-            padding: 20px; background-color: #262626; 
-            border-bottom: 1px solid #333; font-size: 1.2rem; font-weight: bold; 
+            padding: 8px; background-color: #262626; 
+            border-bottom: 1px solid #333; font-size: 1.0rem; font-weight: bold; 
         }
 
         .route-list { padding: 15px; overflow-y: auto; flex-grow: 1; }
@@ -42,7 +42,7 @@
         .toggle-btn { 
             position: absolute; top: 15px; left: 15px; z-index: 999; 
             background-color: #1a1a1a; color: white; border: 1px solid #333; 
-            padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; 
+            padding: 10px 15px; border-radius: 4px; cursor: pointer; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
@@ -61,23 +61,22 @@
 <body>
 
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">Автобусны чиглэлүүд</div>
+        <div class="sidebar-header">АВТОБУСНЫ ЧИГЛЭЛҮҮД</div>
         <div class="route-list" id="route-list">Дата уншиж байна...</div>
     </div>
 
-    <button class="toggle-btn" id="toggle-btn">☰ Цэс</button>
+    <button class="toggle-btn" id="toggle-btn"> > </button>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
         // 1. Газрын зургийг Улаанбаатар хотын төв дээр нээнэ
-        const map = L.map('map').setView([47.9188, 106.9176], 13); 
+        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([47.9188, 106.9176], 13);
 
         // 2. Хар Бараан (Dark Mode) загвар оруулах
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 20,
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(map); 
 
         const activeMarkers = {}; 
