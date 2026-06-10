@@ -145,9 +145,14 @@
             sidebar.classList.toggle('active'); // active классыг нэмэх эсвэл хасах
         });
 
-        // 4. GitHub Pages-ийн дуудах замыг найдвартай болгох үүднээс цэг налуу зураастай (./) болгов
-        fetch('./UB_route_stations.json') 
-            .then(response => {
+// 4. Вэб хуудасны одоо байгаа хаягийг автоматаар авч, JSON файлын бүтэн замыг үүсгэх
+const jsonUrl = window.location.pathname.endsWith('/') 
+    ? window.location.origin + window.location.pathname + 'UB_route_stations.json'
+    : window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) + '/UB_route_stations.json';
+
+// Шинээр үүсгэсэн бүтэн хаягаар файлыг дуудах
+fetch(jsonUrl) 
+    .then(response => {
                 if (!response.ok) { // Хэрэв файл олдохгүй бол алдаа руу шилжүүлнэ
                     throw new Error('Файлыг олсонгүй (Статус: ' + response.status + ')');
                 }
