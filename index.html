@@ -296,27 +296,74 @@
                 routeListContainer.innerHTML = `<div class="error-msg">Алдаа: Датаг уншиж чадсангүй.<br>${error.message}</div>`;
             });
 
-        // Автобусны зогсоолуудыг цэгээр харуулах функц
-        function showRouteStations(routeAlias) { 
-            const stations = globalData.filter(item => item.routeAlias === routeAlias); 
-            activeMarkers[routeAlias] = []; 
 
-            stations.forEach(station => { 
-                const lat = parseFloat(station.latitude);
-                const lng = parseFloat(station.longitude);
 
-                if (!isNaN(lat) && !isNaN(lng)) { 
-                    const marker = L.circleMarker([lat, lng], {
-                        radius: 2, fillColor: "#ffff80", color: "#000000", weight: 20, opacity: 0.0, fillOpacity: 1.0 
-                    });
 
-                    marker.bindPopup(`<b>Чиглэл:</b> ${station.routeName || routeAlias}<br><b>Зогсоол:</b> ${station.stationName || station.stationAlias || 'Нэргүй зогсоол'}`);
-                    marker.addTo(map); 
-                    activeMarkers[routeAlias].push(marker); 
-                }
+
+
+
+
+
+        
+function showRouteStations(routeAlias) { 
+    // Хуучин массив бүтцээс тухайн чиглэлд хамаарах зогсоолуудыг шүүнэ
+    const stations = globalData.filter(item => item.routeAlias === routeAlias); 
+    activeMarkers[routeAlias] = []; 
+
+    stations.forEach(station => { 
+        const lat = parseFloat(station.latitude);
+        const lng = parseFloat(station.longitude);
+
+        if (!isNaN(lat) && !isNaN(lng)) { 
+            
+            // 1. Энэ зогсоол дээр давхцаж буй бүх чиглэлүүдийг хуучин JSON-оос шүүж олох
+            const passingRoutesRaw = globalData
+                .filter(item => item.stationName === station.stationName)
+                .map(item => item.routeAlias);
+            
+            // Давхардлыг арилгах (жишээ нь: Ч:1, Ч:46, Ү:12)
+            const passingRoutes = [...new Set(passingRoutesRaw)];
+
+            // 🌟 ШИНЭ: Чиглэлүүдийг зүгээр л таслалаар тусгаарлаж, нэг мөр текст болгоно
+            const routesText = passingRoutes.join(', ');
+
+            // Дугуй маркер үүсгэх тохиргоо (Цагаан хүрээтэй)
+            const marker = L.circleMarker([lat, lng], {
+                radius: 2,
+                fillColor: "#ffff80",
+                color: "#000000", 
+                weight: 20,
+                opacity: 0.0,
+                fillOpacity: 1.0,
+                className: 'custom-bus-marker'
             });
-        }
 
+            // 🌟 ШИНЭЧЛЭГДСЭН: Цагаан цонхны доор шууд 1-2 мөрөөр залгуулаад харуулах бүтэц
+            marker.bindPopup(`
+                <div style="font-family: Arial, sans-serif; line-height: 1.3; font-size: 0.95rem;">
+                    <b>📍 ${station.stationName || 'Нэргүй зогсоол'}</b><br>
+                    <span style="color: #555; font-size: 0.85rem;">${station.routeName || routeAlias}</span>
+                    <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #ccc; font-size: 0.85rem;">
+                        <b>Дайрах чиглэлүүд:</b> <span style="color: #ff7800; font-weight: bold;">${routesText}</span>
+                    </div>
+                </div>
+            `);
+
+            marker.addTo(map); 
+            activeMarkers[routeAlias].push(marker); 
+        }
+    });
+}
+
+
+
+
+
+
+
+
+
+        
         // Зогсоолын цэгүүдийг устгах функц
         function removeRouteStations(routeAlias) { 
             if (activeMarkers[routeAlias]) { 
