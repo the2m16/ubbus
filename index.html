@@ -1,0 +1,128 @@
+<!DOCTYPE html> <html lang="mn"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>УБ Автобусны Чиглэл</title> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <script src="UB_route_stations.js"></script>
+
+    <style> /* Хуудасны үзэмж, дизайныг тодорхойлох CSS хэсэг */
+        html, body { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            font-family: Arial, sans-serif; overflow: hidden; 
+        }
+        #map { width: 100%; height: 100%; z-index: 1; }
+
+        /* Зүүн талаас нээгддэг хажуугийн цэсний загвар */
+        .sidebar { 
+            position: absolute; top: 0; left: -320px; width: 300px; height: 100%; 
+            background-color: #1a1a1a; color: #ffffff; 
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5); 
+            transition: left 0.3s ease; z-index: 1000; 
+            display: flex; flex-direction: column; 
+        }
+        .sidebar.active { left: 0; }
+        .sidebar-header { 
+            padding: 20px; background-color: #262626; 
+            border-bottom: 1px solid #333; font-size: 1.2rem; font-weight: bold; 
+        }
+        .route-list { padding: 15px; overflow-y: auto; flex-grow: 1; }
+        .route-item { display: flex; align-items: center; margin-bottom: 12px; cursor: pointer; font-size: 0.95rem; }
+        .route-item input { margin-right: 12px; transform: scale(1.2); cursor: pointer; }
+
+        /* Цэсийг нээж хаах товчлуурын загвар */
+        .toggle-btn { 
+            position: absolute; top: 15px; left: 15px; z-index: 999; 
+            background-color: #1a1a1a; color: white; border: 1px solid #333; 
+            padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; 
+        }
+        .sidebar.active + .toggle-btn { left: 315px; transition: left 0.3s ease; }
+
+        @media (max-width: 480px) { 
+            .sidebar { width: 85%; left: -90%; }
+            .sidebar.active + .toggle-btn { left: calc(85% + 15px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">Автобусны чиглэлүүд</div>
+        <div class="route-list" id="route-list"></div>
+    </div>
+
+    <button class="toggle-btn" id="toggle-btn">☰ Цэс</button>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // 1. Газрын зургийг Улаанбаатар хотын төв дээр нээнэ
+        const map = L.map('map').setView([47.9188, 106.9176], 13); 
+
+        // 2. Үнэгүй, шууд ажиллах Хар Бараан (Dark Mode) загвар оруулах
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20, 
+            attribution: '&copy; OpenStreetMap &copy; CARTO'
+        }).addTo(map); 
+
+        const activeMarkers = {}; 
+
+        // 3. Товчлуур дарахад цэс нээж хаах үйлдэл
+        const sidebar = document.getElementById('sidebar'); 
+        const toggleBtn = document.getElementById('toggle-btn'); 
+        const routeListContainer = document.getElementById('route-list'); 
+
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('active'); });
+
+        // 4. 🌟 ХОЛБОСОН JS ФАЙЛ ДОТОРХ БУСДАТА ХУВЬСАГЧИЙГ ШУУД АШИГЛАНА
+        const globalData = busData; 
+        
+        // Давтагдаагүй чиглэлүүдийг ялгах
+        const routes = [...new Set(globalData.map(item => item.routeAlias))]; 
+        routes.sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+        
+        // Чекбоксуудыг дэлгэцэнд зурах
+        routes.forEach(route => { 
+            const label = document.createElement('label'); 
+            label.className = 'route-item'; 
+            
+            const checkbox = document.createElement('input'); 
+            checkbox.type = 'checkbox'; 
+            checkbox.value = route; 
+            
+            const text = document.createTextNode(route); 
+            
+            label.appendChild(checkbox); 
+            label.appendChild(text); 
+            routeListContainer.appendChild(label); 
+
+            checkbox.addEventListener('change', (e) => { 
+                if (e.target.checked) { showRouteStations(e.target.value); } 
+                else { removeRouteStations(e.target.value); }
+            });
+        });
+
+        // 5. Зогсоолуудыг цэгээр харуулах функц
+        function showRouteStations(routeAlias) { 
+            const stations = globalData.filter(item => item.routeAlias === routeAlias); 
+            activeMarkers[routeAlias] = []; 
+
+            stations.forEach(station => { 
+                if (station.latitude && station.longitude) { 
+                    const marker = L.circleMarker([station.latitude, station.longitude], {
+                        radius: 6, fillColor: "#ff7800", color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 
+                    });
+                    marker.bindPopup(`<b>Чиглэл:</b> ${station.routeName}<br><b>Зогсоол:</b> ${station.stationName || station.stationAlias}`);
+                    marker.addTo(map); 
+                    activeMarkers[routeAlias].push(marker); 
+                }
+            });
+        }
+
+        // 6. Цэгүүдийг устгах функц
+        function removeRouteStations(routeAlias) { 
+            if (activeMarkers[routeAlias]) { 
+                activeMarkers[routeAlias].forEach(marker => { map.removeLayer(marker); });
+                delete activeMarkers[routeAlias]; 
+            }
+        }
+    </script>
+</body>
+</html>
