@@ -139,6 +139,41 @@
             .sidebar.active + .toggle-btn { left: -50px; }
         }
 
+/* GOOGLE MAPS CURRENT MY LOCATION BUTTON */
+.locate-btn {
+    position: absolute;
+    bottom: 25px; /* Баруун доод булангаас дээшлэх зай */
+    right: 25px;  /* Баруун ирмэгээс дотогшлох зай */
+    z-index: 999; /* Газрын зургийн дээр харагдуулах */
+    width: 44px;
+    height: 44px;
+    background-color: #ffffff;
+    border: none;
+    border-radius: 50%; /* Төгс дугуй хэлбэр */
+    box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.locate-btn:hover {
+    background-color: #f4f4f4;
+}
+
+/* Товчлуур доторх Google Maps байршил заагч дүрс (SVG) */
+.locate-icon {
+    width: 24px;
+    height: 24px;
+    fill: #666666; /* Анхны өнгө нь саарал */
+    transition: fill 0.2s ease;
+}
+
+/* Байршлыг хайж байх үед эсвэл идэвхтэй үед цэнхэр болно */
+.locate-btn.loading .locate-icon {
+    fill: #0099ff; /* Таны v5 кодын үндсэн цэнхэр өнгө */
+}
 
 
 /* 1. Зогсоолын Плпап жижиг цонхны үндсэн арын фон болон хүрээг өөрчлөх */
@@ -197,6 +232,11 @@
     <button class="toggle-btn" id="toggle-btn"> > </button>
     <div id="map"></div>
 
+    <button class="locate-btn" id="locate-btn" title="Миний байршил">
+    <svg class="locate-icon" viewBox="0 0 24 24">
+        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+    </svg> </button>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
@@ -207,7 +247,47 @@
             attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
         }).addTo(map); 
 
-        const activeMarkers = {}; 
+        const activeMarkers = {};
+
+// 🌟 ШИНЭ: Миний байршил тогтоох логик
+const locateBtn = document.getElementById('locate-btn');
+let userLocationMarker = null;
+
+locateBtn.addEventListener('click', () => {
+    locateBtn.classList.add('loading'); // Товчлуурын дүрсийг цэнхэр болгоно
+    
+    // Хэрэглэгчийн GPS байршлыг хайх (Өндөр нарийвчлалтайгаар)
+    map.locate({ setView: true, maxZoom: 16, enableHighAccuracy: true });
+});
+
+// Байршил амжилттай олдсон үед ажиллах функц
+map.on('locationfound', (e) => {
+    locateBtn.classList.remove('loading');
+    
+    // Өмнө нь байршлын маркер үүссэн байвал устгаад шинээр зурна
+    if (userLocationMarker) {
+        map.removeLayer(userLocationMarker);
+    }
+
+    // Google Maps шиг цэвэрхэн хөх өнгийн дугуй цэг үүсгэх
+    userLocationMarker = L.circleMarker(e.latlng, {
+        radius: 8,
+        fillColor: '#0099ff', // Таны v5 кодын цэнхэр өнгө
+        color: '#ffffff',     // Цагаан хүрээ
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 0.9
+    }).addTo(map);
+
+    userLocationMarker.bindPopup("<b>Таны одоогийн байршил</b>").openPopup();
+});
+
+// Байршил тогтоож чадаагүй эсвэл зөвшөөрөл өгөөгүй үед ажиллах функц
+map.on('locationerror', (e) => {
+    locateBtn.classList.remove('loading');
+    alert("Байршил тогтооход алдаа гарлаа. Та GPS эсвэл хөтөчийнхөө байршил заагч зөвшөөрлийг шалгана уу.");
+});
+        
         let globalData = []; 
 
         const sidebar = document.getElementById('sidebar'); 
