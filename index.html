@@ -119,11 +119,11 @@
         // 1. Газрын зургийг Улаанбаатар хотын төв дээр анхлан нээнэ (Координат, Масштаб=13)
         const map = L.map('map').setView([47.9188, 106.9176], 13); 
 
-        // 2. Газрын зурагт Хар Бараан (Dark Mode) загвар оруулах (Stadia Maps)
-        L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
-            maxZoom: 20, // Хамгийн ихдээ ойртож болох хэмжээ
-            attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a>' // Зохиогчийн эрх
-        }).addTo(map); // Газрын зураг дээр нэмэх
+// 2. Үнэгүй, шууд ажиллах Хар Бараан (Dark Mode) загвар оруулах (CartoDB)
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+}).addTo(map);
 
         // Идэвхтэй байгаа автобусны зогсоолуудын цэгийг хадгалах объект (Устгах, нэмэхэд хэрэглэнэ)
         const activeMarkers = {}; 
