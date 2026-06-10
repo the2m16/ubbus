@@ -39,7 +39,7 @@
 
         .sidebar-header { /* Цэсний толгой хэсэг */
             padding: 20px; /* Дотор талын зайг тохируулна */
-            background-color: #262626; /* Үндсэн дэвсгэрээс арай цайвар хар өнгө */
+            background-color: #262626; /* Үндсэн дэвсгэрээс арай цайвар хар өнго */
             border-bottom: 1px solid #333; /* Доод талд нь нарийн зураас татна */
             font-size: 1.2rem; /* Үсгийн хэмжээг тохируулна */
             font-weight: bold; /* Үсгийг тод болгоно */
@@ -91,6 +91,13 @@
             transition: left 0.3s ease; /* Шилжилтийг зөөлөн харуулна */
         }
 
+        /* Алдааны бичвэр харуулах загвар */
+        .error-msg {
+            color: #ff4d4d; /* Улаан өнгөөр харуулна */
+            padding: 10px; /* Дотор талын зай */
+            font-size: 0.9rem; /* Үсгийн хэмжээ */
+        }
+
         /* Responsive тохиргоо: Гар утасны жижиг дэлгэцэнд зориулсан загвар */
         @media (max-width: 480px) { 
             .sidebar { 
@@ -106,7 +113,7 @@
 <body>
 
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">Автобусны чиглэлүүд</div> <div class="route-list" id="route-list"></div> </div>
+        <div class="sidebar-header">Автобусны чиглэлүүд</div> <div class="route-list" id="route-list">Дата уншиж байна...</div> </div>
 
     <button class="toggle-btn" id="toggle-btn">☰ Цэс</button>
 
@@ -119,11 +126,11 @@
         // 1. Газрын зургийг Улаанбаатар хотын төв дээр анхлан нээнэ (Координат, Масштаб=13)
         const map = L.map('map').setView([47.9188, 106.9176], 13); 
 
-// 2. Үнэгүй, шууд ажиллах Хар Бараан (Dark Mode) загвар оруулах (CartoDB)
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 20,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-}).addTo(map);
+        // 2. Үнэгүй, шууд ажиллах Хар Бараан (Dark Mode) загвар оруулах (CartoDB)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20, // Хамгийн ихдээ ойртож болох хэмжээ
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' // Зохиогчийн эрх
+        }).addTo(map); // Газрын зураг дээр нэмэх
 
         // Идэвхтэй байгаа автобусны зогсоолуудын цэгийг хадгалах объект (Устгах, нэмэхэд хэрэглэнэ)
         const activeMarkers = {}; 
@@ -132,24 +139,29 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         // 3. Хажуугийн цэсийг нээж, хаах товчлуурын логик
         const sidebar = document.getElementById('sidebar'); // Цэсний элементийг барьж авах
         const toggleBtn = document.getElementById('toggle-btn'); // Товчлуурын элементийг барьж авах
+        const routeListContainer = document.getElementById('route-list'); // Жагсаалт орох талбар
 
         toggleBtn.addEventListener('click', () => { // Товчлуур дээр дарах үед ажиллах функц
             sidebar.classList.toggle('active'); // active классыг нэмэх эсвэл хасах
         });
 
-        // 4. JSON файлаас автобусны зогсоол, чиглэлийн датаг унших функц
-        fetch('UB_route_stations.json') // Ижил хавтас дахь JSON файлыг дуудах
-            .then(response => response.json()) // Ирсэн хариуг JSON хэлбэрт хөрвүүлэх
+        // 4. GitHub Pages-ийн дуудах замыг найдвартай болгох үүднээс цэг налуу зураастай (./) болгов
+        fetch('./UB_route_stations.json') 
+            .then(response => {
+                if (!response.ok) { // Хэрэв файл олдохгүй бол алдаа руу шилжүүлнэ
+                    throw new Error('Файлыг олсонгүй (Статус: ' + response.status + ')');
+                }
+                return response.json(); // Ирсэн хариуг JSON хэлбэрт хөрвүүлэх
+            })
             .then(data => { // Дата амжилттай уншигдсаны дараа ажиллах хэсэг
                 globalData = data; // Уншсан датагаа глобал хувьсагчид хадгалах
+                routeListContainer.innerHTML = ''; // "Уншиж байна..." гэсэн бичгийг арилгаж цэвэрлэнэ
                 
                 // Дата дотроос давтагдаагүй цор ганц автобусны чиглэлүүдийг (routeAlias) ялган авах
                 const routes = [...new Set(data.map(item => item.routeAlias))]; 
                 
                 // Ялгаж авсан чиглэлүүдийг цагаан толгойн дарааллаар эрэмбэлэх
                 routes.sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
-
-                const routeListContainer = document.getElementById('route-list'); // Жагсаалт орох талбар
                 
                 // Чиглэл бүрт зориулж Чекбокс бүхий мөрүүдийг HTML дээр үүсгэх
                 routes.forEach(route => { 
@@ -176,7 +188,10 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                     });
                 });
             })
-            .catch(error => console.error('Дата уншихад алдаа гарлаа:', error)); // Алдаа гарвал консол дээр хэвлэнэ
+            .catch(error => { // Ямар нэгэн алдаа гарвал зүүн цонхонд улаанаар хэвлэж харуулна
+                console.error(error);
+                routeListContainer.innerHTML = `<div class="error-msg">Алдаа: Датаг уншиж чадсангүй.<br>${error.message}</div>`;
+            });
 
         // 5. Сонгогдсон чиглэлийн автобусны зогсоолуудыг газрын зураг дээр цэгээр харуулах функц
         function showRouteStations(routeAlias) { 
