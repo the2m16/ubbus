@@ -117,12 +117,12 @@
     <script> /* Програмын логик, дата унших болон зураглах JS хэсэг */
         
         // 1. Газрын зургийг Улаанбаатар хотын төв дээр анхлан нээнэ (Координат, Масштаб=13)
-        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([47.9188, 106.9176], 13); 
+        const map = L.map('map').setView([47.9188, 106.9176], 13); 
 
         // 2. Газрын зурагт Хар Бараан (Dark Mode) загвар оруулах (Stadia Maps)
         L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
             maxZoom: 20, // Хамгийн ихдээ ойртож болох хэмжээ
-
+            attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a>' // Зохиогчийн эрх
         }).addTo(map); // Газрын зураг дээр нэмэх
 
         // Идэвхтэй байгаа автобусны зогсоолуудын цэгийг хадгалах объект (Устгах, нэмэхэд хэрэглэнэ)
