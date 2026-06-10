@@ -167,25 +167,31 @@
             // Анх хуудас ачаалагдахад бүх жагсаалтыг харуулна
             renderRouteList(uniqueRoutes);
 
-            // 5. Хайлтын цонхонд суурилагдсан шүүлтүүрийн логик
+// 5. Хайлтын цонхонд суурилагдсан шүүлтүүрийн логик
             const searchInput = document.getElementById('route-search');
+            
+            // Хуудас ачаалагдахад хайлтын цонхыг таг хоосон болгож цэвэрлэх (Хамгаалалт)
+            searchInput.value = ''; 
+
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase().trim();
                 
+                // Хэрэв хайлтын цонхонд юу ч бичээгүй (хоосон) байвал бүх датаг шууд харуулна
+                if (query === '') {
+                    renderRouteList(uniqueRoutes);
+                    return;
+                }
+                
                 // Хэрэглэгчийн бичсэн үгээр код (Ч:46), тоо (46), эсвэл бүтэн нэрнээс хайлт хийнэ
                 const filtered = uniqueRoutes.filter(route => {
-                    return route.alias.toLowerCase().includes(query) || 
-                           route.fullName.toLowerCase().includes(query);
+                    const aliasMatch = route.alias && route.alias.toLowerCase().includes(query);
+                    const nameMatch = route.fullName && route.fullName.toLowerCase().includes(query);
+                    return aliasMatch || nameMatch;
                 });
                 
                 // Шүүгдсэн шинэ жагсаалтыг дэлгэцэнд зурах
                 renderRouteList(filtered);
             });
-        })
-        .catch(error => { 
-            console.error(error);
-            routeListContainer.innerHTML = `<div class="error-msg">Алдаа: Датаг уншиж чадсангүй.<br>${error.message}</div>`;
-        });
 
     // 6. Сонгогдсон чиглэлийн автобусны зогсоолуудыг газрын зураг дээр цэгээр харуулах функц
     function showRouteStations(routeAlias) { 
