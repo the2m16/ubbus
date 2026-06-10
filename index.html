@@ -262,7 +262,7 @@
 
                 if (!isNaN(lat) && !isNaN(lng)) { 
                     const marker = L.circleMarker([lat, lng], {
-                        radius: 1, fillColor: "#ffff80", color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 
+                        radius: 2, fillColor: "#ffff80", color: "#000000", weight: 20, opacity: 0.0, fillOpacity: 1.0 
                     });
 
                     marker.bindPopup(`<b>Чиглэл:</b> ${station.routeName || routeAlias}<br><b>Зогсоол:</b> ${station.stationName || station.stationAlias || 'Нэргүй зогсоол'}`);
