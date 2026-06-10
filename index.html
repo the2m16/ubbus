@@ -70,126 +70,160 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <script>
-        // 1. Газрын зургийг Улаанбаатар хотын төв дээр нээнэ
-        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([47.9188, 106.9176], 13);
+<script>
+    // 1. Газрын зургийг Улаанбаатар хотын төв дээр анхлан нээнэ (Координат, Масштаб=13)
+    const map = L.map('map').setView([47.9188, 106.9176], 13); 
 
-        // 2. Хар Бараан (Dark Mode) загвар оруулах
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            maxZoom: 20,
-        }).addTo(map); 
+    // 2. Хар Бараан (Dark Mode) загвар оруулах (CartoDB)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 20,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map); 
 
-        const activeMarkers = {}; 
-        let globalData = []; 
+    // Идэвхтэй байгаа автобусны зогсоолуудын цэгийг хадгалах объект
+    const activeMarkers = {}; 
+    let globalData = []; // Сонгосон үед шүүлт хийх зориулалттай глобал дата
 
-        const sidebar = document.getElementById('sidebar'); 
-        const toggleBtn = document.getElementById('toggle-btn'); 
-        const routeListContainer = document.getElementById('route-list'); 
+    // Хажуугийн цэс болон хайлтын талбарын элементүүдийг барьж авах
+    const sidebar = document.getElementById('sidebar'); 
+    const toggleBtn = document.getElementById('toggle-btn'); 
+    const routeListContainer = document.getElementById('route-list'); 
 
-        toggleBtn.addEventListener('click', () => { 
-            sidebar.classList.toggle('active'); 
-        });
+    // Цэсийг нээж хаах товчлуурын логик
+    toggleBtn.addEventListener('click', () => { 
+        sidebar.classList.toggle('active'); 
+    });
 
-        // 3. Файлыг шууд нэрээр нь дуудах
-        fetch('UB_route_stations.json') 
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Файлыг олсонгүй (Статус: ' + response.status + ')');
-                }
-                return response.json(); 
-            })
-            .then(data => { 
-                globalData = data; 
-                routeListContainer.innerHTML = ''; 
+    // 3. JSON файлыг шууд нэрээр нь дуудаж унших
+    fetch('UB_route_stations.json') 
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Файлыг олсонгүй (Статус: ' + response.status + ')');
+            }
+            return response.json(); 
+        })
+        .then(data => { 
+            globalData = data; 
+            
+            if (!Array.isArray(data) || data.length === 0) {
+                routeListContainer.innerHTML = '<div class="error-msg">Файл дотор дата алга байна.</div>';
+                return;
+            }
 
-                if (!Array.isArray(data) || data.length === 0) {
-                    routeListContainer.innerHTML = '<div class="error-msg">Файл дотор дата алга байна.</div>';
-                    return;
-                }
+            // Давтагдаагүй бүх чиглэлүүдийн датаг (код болон бүтэн нэртэй нь) бэлдэж авах
+            const uniqueRoutes = [];
+            const distinctAliases = [...new Set(data.map(item => item.routeAlias).filter(Boolean))];
+            
+            // Чиглэлүүдийг цагаан толгойн болон тооны дарааллаар эрэмбэлэх
+            distinctAliases.sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+            
+            distinctAliases.forEach(alias => {
+                const routeInfo = data.find(item => item.routeAlias === alias);
+                uniqueRoutes.push({
+                    alias: alias,
+                    fullName: routeInfo && routeInfo.routeName ? routeInfo.routeName : alias
+                });
+            });
 
-                // 🌟 СҮҮЛИЙН ШИНЭЧЛЭЛ: Өгөгдөл доторх чиглэлийн нэрийг уян хатан хайх (routeAlias эсвэл route_alias)
-                const sample = data[0];
-                const aliasKey = ('routeAlias' in sample) ? 'routeAlias' : (('route_alias' in sample) ? 'route_alias' : null);
-                const nameKey = ('routeName' in sample) ? 'routeName' : (('route_name' in sample) ? 'route_name' : aliasKey);
-
-                if (!aliasKey) {
-                    routeListContainer.innerHTML = '<div class="error-msg">JSON бүтцээс чиглэлийн нэр олдсонгүй.</div>';
-                    return;
-                }
-
-                // Давтагдаагүй чиглэлүүдийг ялгаж авах
-                const routes = [...new Set(data.map(item => item[aliasKey]).filter(Boolean))]; 
-                routes.sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+            // 4. Жагсаалтыг дэлгэцэнд зурдаг үндсэн функц
+            function renderRouteList(filteredRoutes) {
+                routeListContainer.innerHTML = ''; // Хуучин жагсаалтыг цэвэрлэнэ
                 
-                routes.forEach(route => { 
-                    // 2. 🌟 ТУХАЙН ЧИГЛЭЛИЙН БҮТЭН НЭРИЙГ (routeName) ЖИШЭЭ БОЛГОЖ НЭГ ДАТАГААС НЬ ХАЙЖ ОЛОХ
-                    const routeInfo = data.find(item => item.routeAlias === route);
-                    const fullRouteName = routeInfo && routeInfo.routeName ? routeInfo.routeName : route;
+                if (filteredRoutes.length === 0) {
+                    routeListContainer.innerHTML = '<div style="color: #888; padding: 10px; font-size: 0.9rem;">Илэрц олдсонгүй...</div>';
+                    return;
+                }
 
+                filteredRoutes.forEach(route => { 
                     const label = document.createElement('label'); 
                     label.className = 'route-item'; 
                     
                     const checkbox = document.createElement('input'); 
                     checkbox.type = 'checkbox'; 
-                    checkbox.value = route; // Чекбокс ажиллахад код нь хэвээрээ байна
+                    checkbox.value = route.alias;
                     
-                    // 3. 🌟 ДЭЛГЭЦЭНД ХАРАГДАХ ТЕКСТД БҮТЭН НЭРИЙГ НЬ ОНООЖ ӨГӨХ
-                    const text = document.createTextNode(fullRouteName); 
+                    // Хэрэв энэ чиглэл урьд нь сонгогдсон байсан бол чекбоксыг нь асаалттай үлдээнэ
+                    if (activeMarkers[route.alias]) {
+                        checkbox.checked = true;
+                    }
+                    
+                    const text = document.createTextNode(route.fullName); 
                     
                     label.appendChild(checkbox); 
                     label.appendChild(text); 
                     routeListContainer.appendChild(label); 
 
+                    // Чекбокс дарах үеийн үйлдэл
                     checkbox.addEventListener('change', (e) => { 
                         if (e.target.checked) { 
-                            showRouteStations(e.target.value, 'routeAlias', 'routeName'); 
+                            showRouteStations(e.target.value); 
                         } else { 
                             removeRouteStations(e.target.value); 
                         }
                     });
                 });
-            })
-            .catch(error => { 
-                console.error(error);
-                routeListContainer.innerHTML = `<div class="error-msg">Алдаа: Датаг уншиж чадсангүй.<br>${error.message}</div>`;
-            });
-
-        // 4. Автобусны зогсоолуудыг зурах функц
-        function showRouteStations(routeAlias, aliasKey, nameKey) { 
-            const stations = globalData.filter(item => item[aliasKey] === routeAlias); 
-            activeMarkers[routeAlias] = []; 
-
-            // Олноор давтагдах талбаруудыг уян хатан шалгах
-            const sample = globalData[0];
-            const latKey = ('latitude' in sample) ? 'latitude' : 'lat';
-            const lngKey = ('longitude' in sample) ? 'longitude' : 'lng';
-            const stationNameKey = ('stationName' in sample) ? 'stationName' : (('station_name' in sample) ? 'station_name' : 'stationAlias');
-
-            stations.forEach(station => { 
-                const lat = parseFloat(station[latKey]);
-                const lng = parseFloat(station[lngKey]);
-
-                if (!isNaN(lat) && !isNaN(lng)) { 
-                    const marker = L.circleMarker([lat, lng], {
-                        radius: 1, fillColor: "#ffff80", color: "#000000", weight: 20, opacity: 0.0, fillOpacity: 1.0 
-                    });
-
-                    marker.bindPopup(`<b>Чиглэл:</b> ${station[nameKey]}<br><b>Зогсоол:</b> ${station[stationNameKey] || 'Нэргүй зогсоол'}`);
-                    marker.addTo(map); 
-                    activeMarkers[routeAlias].push(marker); 
-                }
-            });
-        }
-
-        // 5. Зогсоолуудыг устгах функц
-        function removeRouteStations(routeAlias) { 
-            if (activeMarkers[routeAlias]) { 
-                activeMarkers[routeAlias].forEach(marker => { 
-                    map.removeLayer(marker); 
-                });
-                delete activeMarkers[routeAlias]; 
             }
+
+            // Анх хуудас ачаалагдахад бүх жагсаалтыг харуулна
+            renderRouteList(uniqueRoutes);
+
+            // 5. Хайлтын цонхонд суурилагдсан шүүлтүүрийн логик
+            const searchInput = document.getElementById('route-search');
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                
+                // Хэрэглэгчийн бичсэн үгээр код (Ч:46), тоо (46), эсвэл бүтэн нэрнээс хайлт хийнэ
+                const filtered = uniqueRoutes.filter(route => {
+                    return route.alias.toLowerCase().includes(query) || 
+                           route.fullName.toLowerCase().includes(query);
+                });
+                
+                // Шүүгдсэн шинэ жагсаалтыг дэлгэцэнд зурах
+                renderRouteList(filtered);
+            });
+        })
+        .catch(error => { 
+            console.error(error);
+            routeListContainer.innerHTML = `<div class="error-msg">Алдаа: Датаг уншиж чадсангүй.<br>${error.message}</div>`;
+        });
+
+    // 6. Сонгогдсон чиглэлийн автобусны зогсоолуудыг газрын зураг дээр цэгээр харуулах функц
+    function showRouteStations(routeAlias) { 
+        const stations = globalData.filter(item => item.routeAlias === routeAlias); 
+        activeMarkers[routeAlias] = []; 
+
+        stations.forEach(station => { 
+            const lat = parseFloat(station.latitude);
+            const lng = parseFloat(station.longitude);
+
+            if (!isNaN(lat) && !isNaN(lng)) { 
+                // Зогсоолуудыг жижиг дугуй цэгээр дүрсэлнэ
+                const marker = L.circleMarker([lat, lng], {
+                    radius: 6,
+                    fillColor: "#ff7800",
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8 
+                });
+
+                // Цэг дээр дарахад гарах мэдээлэл (Чиглэл болон Зогсоолын нэр)
+                marker.bindPopup(`<b>Чиглэл:</b> ${station.routeName || routeAlias}<br><b>Зогсоол:</b> ${station.stationName || station.stationAlias || 'Нэргүй зогсоол'}`);
+                marker.addTo(map); 
+                activeMarkers[routeAlias].push(marker); 
+            }
+        });
+    }
+
+    // 7. Чекбокс идэвхгүй болох үед зогсоолын цэгүүдийг газрын зургаас устгах функц
+    function removeRouteStations(routeAlias) { 
+        if (activeMarkers[routeAlias]) { 
+            activeMarkers[routeAlias].forEach(marker => { 
+                map.removeLayer(marker); 
+            });
+            delete activeMarkers[routeAlias]; 
         }
-    </script>
+    }
+</script>
 </body>
 </html>
