@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UB Bus Routes</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            font-family: Arial, sans-serif; overflow: hidden;
+        }
+
+        #map { width: 100%; height: 100%; z-index: 1; }
+
+        /* Зүүн хажуугийн цэс */
+        .sidebar { 
+            position: absolute; top: 0; left: -420px; width: 400px; height: 100%; 
+            background-color: #1a1a1a; color: #ffffff; 
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5); 
+            transition: left 0.3s ease; z-index: 1000; 
+            display: flex; flex-direction: column; 
+        }
+
+        .sidebar.active { left: 0; }
+
+        .sidebar-header { 
+            padding: 20px 40px 15px 20px; 
+            background-color: #262626; 
+            font-size: 0.8rem; font-weight: regular; 
+            position: relative; 
+        }
+
+        /* Цэсийг хаах X товчлуур */
+        .close-btn {
+            position: absolute; top: 18px; right: 15px;
+            background: none; border: none; color: #888;
+            font-size: 1.4rem; cursor: pointer; font-weight: regular;
+            padding: 0; line-height: 1; transition: color 0.2s ease;
+        }
+        .close-btn:hover { color: #ff4d4d; }
+
+        /* Хайлтын хэсэг */
+        .search-container {
+            padding: 0 15px 10px 15px;
+            background-color: #262626;
+        }
+
+        #route-search {
+            width: 100%; padding: 8px; border-radius: 4px; 
+            border: 1px solid #444; background-color: #1a1a1a; 
+            color: #fff; box-sizing: border-box; font-size: 0.8rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        #route-search:focus {
+            border-color: #0099ff; /* Идэвхжих үед хүрээ нь автобусны цэгтэй адил гоё улбар шар өнгөтэй болно */
+        }
+
+        /* 🌟 ШИНЭ: Бүгдийг чекдэх хэсгийн загвар */
+        .select-all-container {
+            padding: 10px 15px;
+            background-color: #202020;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #ffffff;
+            cursor: pointer;
+        }
+        .select-all-container input {
+            margin-right: 12px;
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+
+        /* Чиглэлийн жагсаалт */
+        .route-list { 
+    padding: 15px; 
+    overflow-y: auto; 
+    flex-grow: 1; 
+    
+    /* 🌟 ШИНЭ: Firefox хөтөчид зориулсан нарийхан скролл */
+    scrollbar-width: thin;
+    scrollbar-color: #444444 transparent;
+}
+
+/* 🌟 ШИНЭ: Chrome, Safari, Edge хөтөч болон гар утсанд зориулсан скролл зураасны загвар */
+.route-list::-webkit-scrollbar {
+    width: 4px; /* Скроллыг маш нарийхан (ердөө 4px) болгоно */
+}
+
+/* Скролл гүйгч гүдгэр хэсгийн загвар */
+.route-list::-webkit-scrollbar-thumb {
+    background-color: #444444; /* Харанхуй саарал өнгө (арын фонтой уусна) */
+    border-radius: 10px;       /* Буланг нь мөлгөр дугуй болгоно */
+}
+
+/* Хулганаа дээр нь аваачих үед үл ялиг тодрох хэсэг */
+.route-list::-webkit-scrollbar-thumb:hover {
+    background-color: #0099ff; /* Таны сонгосон автобусны цэнхэр өнгөөр тодорно */
+}
+
+/* Скроллын арын суурь суваг */
+.route-list::-webkit-scrollbar-track {
+    background: transparent;   /* Арын фоныг таг тунгалаг болгож нууна */
+}
+
+        .route-item { 
+            display: flex; align-items: center; margin-bottom: 10px; 
+            cursor: pointer; font-size: 0.8rem; 
+            line-height: 1.0;
+        }
+        .route-item input { margin-right: 12px; transform: scale(1.2); cursor: pointer; }
+
+        /* Зүүн ирмэгийн яг голд байрлах Хавчуурга товчлуур */
+        .toggle-btn { 
+            position: absolute; top: 50%; left: 0; 
+            transform: translateY(-50%); 
+            width: 25px;
+            height: 60px;
+            background: #16a34a;
+            border: none;
+            border-radius: 0 6px 6px 0;
+            cursor: pointer;
+            z-index: 1200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 2px 0 6px rgba(0,0,0,0.3);
+            transition: left 0.25s ease;
+        }
+        .toggle-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: #ffffff;
+            transition: transform 0.25s ease;
+        }
+        .sidebar.active ~ .toggle-btn svg {
+            transform: rotate(180deg);
+        }
+
+        .sidebar.active + .toggle-btn { left: 400px; }
+
+        .error-msg { color: #ff4d4d; padding: 10px; font-size: 0.9rem; }
+
+        @media (max-width: 480px) { 
+            .sidebar { width: 85%; left: -85%; }
+            .sidebar.active + .toggle-btn { left: 85vw; }
+        }
+
+/* GOOGLE MAPS CURRENT MY LOCATION BUTTON */
+.locate-btn {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    width: 44px;
+    height: 44px;
+    background: #ffffff;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    transition: right 0.25s ease, background 0.15s;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.locate-btn:focus {
+    outline: none;
+}
+
+.locate-btn:hover {
+    background: #f1f1f1;
+}
+
+.sidebar.active ~ .locate-btn {
+    right: 444px;
+}
+
+@media (max-width: 480px) {
+    .sidebar.active ~ .locate-btn {
+        right: calc(85vw + 24px);
+    }
+}
+
+/* Товчлуур доторх Google Maps байршил заагч дүрс (SVG) */
+.locate-icon {
+    width: 22px;
+    height: 22px;
+    fill: #4285F4;
+    transition: fill 0.2s ease;
+}
+
+/* Байршлыг хайж байх үед эсвэл идэвхтэй үед цэнхэр болно */
+.locate-btn.loading .locate-icon,
+.locate-btn.active .locate-icon {
+    fill: #0099ff;
+}
+
+.pulse-marker-wrapper {
+    background: transparent !important;
+    border: none !important;
+}
+.pulse-marker {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #4285F4;
+    border: 3px solid #ffffff;
+    box-shadow: 0 0 0 rgba(66,133,244,0.5);
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(66,133,244,0.5); }
+    70% { box-shadow: 0 0 0 12px rgba(66,133,244,0); }
+    100% { box-shadow: 0 0 0 0 rgba(66,133,244,0); }
+}
+
+
+/* 1. Зогсоолын Плпап жижиг цонхны үндсэн арын фон болон хүрээг өөрчлөх */
+.leaflet-popup-content-wrapper {
+    background-color: #262626 !important; /* Хажуугийн цэстэй ижил хар саарал өнгө */
+    color: #ffffff !important;            /* Үндсэн бичвэрийг цагаан болгох */
+    border-radius: 6px !important;        /* Буланг нь үл ялиг дугуйлах */
+    box-shadow: 0 3px 14px rgba(0,0,0,0.5) !important; /* Сүүдрийг илүү тод болгох */
+}
+
+/* 2. Цонхны доор байрлах жижиг гурвалжин сумны өнгийг тааруулах */
+.leaflet-popup-tip {
+    background-color: #262626 !important; /* Сумны арын фоныг цонхтой ижил болгоно */
+}
+
+/* 3. Хэрэв доторх текстийн өнгийг нарийвчлах бол (Жишээ нь: "Дайрах чиглэлүүд" гэдэг бичвэр) */
+.leaflet-popup-content {
+    color: #808080 !important;
+    font-family: Arial, sans-serif;
+    margin: 12px 15px !important; /* Дотор талын зайг цэгцлэх */
+}
+
+/* 4. Цонхыг хаадаг баруун дээд булангийн (X) товчлуурын өнгө */
+.leaflet-popup-close-button {
+    color: #888888 !important;
+}
+.leaflet-popup-close-button:hover {
+    color: #ff4d4d !important; /* Хулганаа хүргэхэд улаан болно */
+}
+
+
+.map-copyright {
+    position: absolute;
+    bottom: 10px;        /* Доод ирмэгээс 10px зайд */
+    left: 50%;           /* Зүүн талаас дэлгэцийн яг 50% дээр аваачна */
+    transform: translateX(-50%); /* Өөрийнх нь өргөний 50%-иар буцааж татаж яг голлуулна */
+    z-index: 999;        /* Газрын зургийн дээр харагдуулах */
+    
+    /* Дизайн болон үсгийн загвар */
+    font-family: Arial, sans-serif;
+    font-size: 0.7rem;   /* Маш цэвэрхэн, жижигхэн харагдуулна */
+    color: #999999;      /* Текстийн өнгө (саарал) */
+    background-color: rgba(26, 26, 26, 0.0); /* Ар талын газрын зураг харагдах тунгалаг бараан фон */
+    padding: 3px 8px;    /* Текст хажуу талын зай */
+    border-radius: 3px;  /* Буланг үл ялиг мөлгөр болгох */
+    pointer-events: none; /* Хэрэглэгч бичвэр дээр дарахад газрын зураг дарагдахад саад болохгүй */
+    white-space: nowrap; /* Бичвэрийг доош нь хугалж унагахгүй, нэг мөрөнд байлгах */
+}
+        
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            АВТОБУСНЫ ЧИГЛЭЛҮҮД
+            <button class="close-btn" id="close-btn">×</button>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" id="route-search" placeholder="Чиглэл, дугаар, нэрээр хайх...">
+        </div>
+
+        <label class="select-all-container" id="select-all-label" style="display: none;">
+            <input type="checkbox" id="select-all-checkbox">
+            <span>Бүгдийг сонгох</span>
+        </label>
+
+        <div class="route-list" id="route-list">Дата уншиж байна...</div>
+    </div>
+
+    <button class="toggle-btn" id="toggle-btn" title="Менюг нээх/хаах">
+        <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+    </button>
+    <div id="map"></div>
+
+    <button class="locate-btn" id="locate-btn" title="Миний байршил">
+    <svg class="locate-icon" viewBox="0 0 24 24">
+        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+    </svg> </button>
+
+    <div class="map-copyright">UB Bus Routes &copy; 2026 The2m16</div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([47.9188, 106.9176], 13);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 20,
+        }).addTo(map); 
+
+        const activeMarkers = {};
+
+// 🌟 ШИНЭ: Миний байршил тогтоох логик (routing.html-тэй ижил)
+const locateBtn = document.getElementById('locate-btn');
+let userLocationMarker = null;
+
+locateBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!navigator.geolocation) {
+        alert('Энэ хөтөч байршил тогтоохыг дэмжихгүй байна.');
+        return;
+    }
+
+    locateBtn.classList.add('active');
+
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        const latlng = [pos.coords.latitude, pos.coords.longitude];
+
+        if (userLocationMarker) {
+            map.removeLayer(userLocationMarker);
+        }
+
+        const icon = L.divIcon({
+            className: 'pulse-marker-wrapper',
+            html: '<div class="pulse-marker"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+
+        userLocationMarker = L.marker(latlng, { icon: icon }).addTo(map);
+
+        map.setView(latlng, 17);
+    }, function(err) {
+        alert('Байршил тогтоох амжилтгүй боллоо: ' + err.message);
+    }, {
+        enableHighAccuracy: true,
+        timeout: 10000
+    });
+
+    setTimeout(() => locateBtn.classList.remove('active'), 1000);
+});
+        
+        let globalData = []; 
+
+        const sidebar = document.getElementById('sidebar'); 
+        const toggleBtn = document.getElementById('toggle-btn'); 
+        const closeBtn = document.getElementById('close-btn'); 
+        const routeListContainer = document.getElementById('route-list'); 
+        const searchInput = document.getElementById('route-search');
+        
+        // 🌟 ШИНЭ: Бүгдийг чеклэх элементийг барьж авах
+        const selectAllLabel = document.getElementById('select-all-label');
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+
+        toggleBtn.addEventListener('click', () => { sidebar.classList.add('active'); });
+        closeBtn.addEventListener('click', () => { sidebar.classList.remove('active'); });
+
+        document.addEventListener('click', (e) => {
+    // Хэрэв цэс нээлттэй (active) байвал, мөн дарагдсан цэг нь цэс болон нээх товчны дотор тал биш бол хаана
+    if (sidebar.classList.contains('active') && 
+        !sidebar.contains(e.target) && 
+        !toggleBtn.contains(e.target)) {
+        sidebar.classList.remove('active');
+    }
+});
+
+        if (searchInput) searchInput.value = '';
+
+        // JSON файлыг унших
+        fetch('UB_route_stations.json') 
+            .then(response => {
+                if (!response.ok) { throw new Error('Файлыг олсонгүй (Статус: ' + response.status + ')'); }
+                return response.json(); 
+            })
+            .then(data => { 
+                globalData = data; 
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    routeListContainer.innerHTML = '<div class="error-msg">Файл дотор дата алга байна.</div>';
+                    return;
+                }
+
+                const uniqueRoutes = [];
+                const distinctAliases = [...new Set(data.map(item => item.routeAlias).filter(Boolean))];
+                
+                distinctAliases.sort((a, b) => a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'}));
+                
+                distinctAliases.forEach(alias => {
+                    const routeInfo = data.find(item => item.routeAlias === alias);
+                    uniqueRoutes.push({
+                        alias: alias,
+                        fullName: routeInfo && routeInfo.routeName ? routeInfo.routeName : alias
+                    });
+                });
+
+                // Одоо дэлгэцэнд харагдаж буй шүүгдсэн чиглэлүүдийг хадгалах массив
+                let currentVisibleRoutes = [];
+
+                // Жагсаалтыг зурах функц
+                function renderRouteList(filteredRoutes) {
+                    routeListContainer.innerHTML = ''; 
+                    currentVisibleRoutes = filteredRoutes; // Одоо харагдаж буй чиглэлүүдийг шинэчлэх
+                    
+                    if (filteredRoutes.length === 0) {
+                        routeListContainer.innerHTML = '<div style="color: #888; padding: 10px; font-size: 0.9rem;">Илэрц олдсонгүй...</div>';
+                        selectAllLabel.style.display = 'none'; // Илэрц байхгүй бол "Бүгдийг сонгох"-ыг нуух
+                        return;
+                    }
+
+                    // Дата байна гэвэл "Бүгдийг сонгох" цонхыг харуулна
+                    selectAllLabel.style.display = 'flex';
+
+                    // Одоо харагдаж буй бүх чиглэлүүд асаалттай байгаа эсэхийг шалгаж "Бүгдийг сонгох" чекбоксыг тааруулах
+                    const allChecked = filteredRoutes.every(route => activeMarkers[route.alias]);
+                    selectAllCheckbox.checked = allChecked;
+
+                    filteredRoutes.forEach(route => { 
+                        const label = document.createElement('label'); 
+                        label.className = 'route-item'; 
+                        
+                        const checkbox = document.createElement('input'); 
+                        checkbox.type = 'checkbox'; 
+                        checkbox.className = 'route-checkbox'; // Нийтээр нь удирдах класс нэмэв
+                        checkbox.value = route.alias;
+                        
+                        if (activeMarkers[route.alias]) {
+                            checkbox.checked = true;
+                        }
+                        
+                        const text = document.createTextNode(route.fullName); 
+                        
+                        label.appendChild(checkbox); 
+                        label.appendChild(text); 
+                        routeListContainer.appendChild(label); 
+
+                        checkbox.addEventListener('change', (e) => { 
+                            if (e.target.checked) { 
+                                showRouteStations(e.target.value); 
+                            } else { 
+                                removeRouteStations(e.target.value); 
+                            }
+                            // Ганц нэгээр нь унтрааж асаах үед "Бүгдийг сонгох" чекбоксын төлөвийг шалгаж шинэчлэх
+                            const currentAllChecked = currentVisibleRoutes.every(r => activeMarkers[r.alias]);
+                            selectAllCheckbox.checked = currentAllChecked;
+                        });
+                    });
+                }
+
+                // Анхны жагсаалтыг гаргах
+                renderRouteList(uniqueRoutes);
+
+                // 🌟 ШИНЭ: "Бүгдийг сонгох" чекбокс дарах үеийн логик
+                selectAllCheckbox.addEventListener('change', (e) => {
+                    const isChecked = e.target.checked;
+                    
+                    // Одоо дэлгэцэнд харагдаж буй (шүүгдсэн) автобуснуудаар давтана
+                    currentVisibleRoutes.forEach(route => {
+                        if (isChecked) {
+                            // Хэрэв асаагаагүй байсан бол асааж газрын зурагт нэмнэ
+                            if (!activeMarkers[route.alias]) {
+                                showRouteStations(route.alias);
+                            }
+                        } else {
+                            // Хэрэв асаалттай байсан бол унтрааж газрын зургаас хасна
+                            if (activeMarkers[route.alias]) {
+                                removeRouteStations(route.alias);
+                            }
+                        }
+                    });
+
+                    // Дэлгэц дээрх чекбоксуудын тэмдэглэгээг харагдацаар нь шинэчлэх
+                    const checkboxes = routeListContainer.querySelectorAll('.route-checkbox');
+                    checkboxes.forEach(cb => {
+                        cb.checked = isChecked;
+                    });
+                });
+
+                // Хайлтын логик
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        const query = e.target.value.toLowerCase().trim();
+                        
+                        if (query === '') {
+                            renderRouteList(uniqueRoutes);
+                            return;
+                        }
+                        
+                        const filtered = uniqueRoutes.filter(route => {
+                            const aliasMatch = route.alias && route.alias.toLowerCase().includes(query);
+                            const nameMatch = route.fullName && route.fullName.toLowerCase().includes(query);
+                            return aliasMatch || nameMatch;
+                        });
+                        
+                        renderRouteList(filtered);
+                    });
+                }
+            })
+            .catch(error => { 
+                console.error(error);
+                routeListContainer.innerHTML = `<div class="error-msg">Алдаа: Датаг уншиж чадсангүй.<br>${error.message}</div>`;
+            });
+
+
+
+
+
+
+
+
+
+        
+function showRouteStations(routeAlias) { 
+    // Хуучин массив бүтцээс тухайн чиглэлд хамаарах зогсоолуудыг шүүнэ
+    const stations = globalData.filter(item => item.routeAlias === routeAlias); 
+    activeMarkers[routeAlias] = []; 
+
+    stations.forEach(station => { 
+        const lat = parseFloat(station.latitude);
+        const lng = parseFloat(station.longitude);
+
+        if (!isNaN(lat) && !isNaN(lng)) { 
+            
+            // 1. Энэ зогсоол дээр давхцаж буй бүх чиглэлүүдийг хуучин JSON-оос шүүж олох
+            const passingRoutesRaw = globalData
+                .filter(item => item.stationName === station.stationName)
+                .map(item => item.routeAlias);
+            
+            // Давхардлыг арилгах (жишээ нь: Ч:1, Ч:46, Ү:12)
+            const passingRoutes = [...new Set(passingRoutesRaw)];
+
+            // 🌟 ШИНЭ: Чиглэлүүдийг зүгээр л таслалаар тусгаарлаж, нэг мөр текст болгоно
+            const routesText = passingRoutes.join(', ');
+
+            // Дугуй маркер үүсгэх тохиргоо (Цагаан хүрээтэй)
+            const marker = L.circleMarker([lat, lng], {
+                radius: 2,
+                fillColor: "#38bdf8",
+                color: "#000000", 
+                weight: 20,
+                opacity: 0.0,
+                fillOpacity: 1.0,
+                className: 'custom-bus-marker'
+            });
+
+            // 🌟 ШИНЭЧЛЭГДСЭН: Цагаан цонхны доор шууд 1-2 мөрөөр залгуулаад харуулах бүтэц
+            marker.bindPopup(`
+                <div style="font-family: Arial, sans-serif; line-height: 1.3; font-size: 0.95rem;">
+                    Зогсоол: <span style="color: #ffffff; font-size: 0.95rem;">${station.stationName || 'Нэргүй зогсоол'}</span><br>
+                    <span style="color: #ffffff; font-size: 0.95rem;">${station.routeName || routeAlias}</span>
+                    <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid #ccc; font-size: 0.85rem;">
+                    Дамжин суух бусад чиглэл: <span style="color: #ffffff; font-weight: bold;">${routesText}</span>
+                    </div>
+                </div>
+            `);
+
+            marker.addTo(map); 
+            activeMarkers[routeAlias].push(marker); 
+        }
+    });
+}
+
+
+
+
+
+
+
+
+
+        
+        // Зогсоолын цэгүүдийг устгах функц
+        function removeRouteStations(routeAlias) { 
+            if (activeMarkers[routeAlias]) { 
+                activeMarkers[routeAlias].forEach(marker => { 
+                    map.removeLayer(marker); 
+                });
+                delete activeMarkers[routeAlias]; 
+            }
+        }
+    </script>
+</body>
+</html>
