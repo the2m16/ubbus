@@ -123,7 +123,7 @@
             transform: translateY(-50%); 
             width: 25px;
             height: 60px;
-            background: #16a34a;
+            background: #0099ff;
             border: none;
             border-radius: 0 6px 6px 0;
             cursor: pointer;
@@ -374,7 +374,7 @@ locateBtn.addEventListener('click', function(e) {
         const selectAllLabel = document.getElementById('select-all-label');
         const selectAllCheckbox = document.getElementById('select-all-checkbox');
 
-        toggleBtn.addEventListener('click', () => { sidebar.classList.add('active'); });
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('active'); });
         closeBtn.addEventListener('click', () => { sidebar.classList.remove('active'); });
 
         document.addEventListener('click', (e) => {
