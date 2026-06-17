@@ -234,6 +234,38 @@
     color: #ff4d4d !important;
 }
 
+.theme-btn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 25px;
+    height: 25px;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    padding: 0;
+    cursor: pointer;
+    z-index: 1000;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-btn:focus {
+    outline: none;
+}
+
+.theme-btn img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: block;
+}
+
 .map-copyright {
     position: absolute;
     bottom: 10px;
@@ -283,6 +315,10 @@
         <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
     </svg> </button>
 
+    <button class="theme-btn" id="theme-btn" title="Өдөр/Шөнийн горим">
+        <img src="day_and_night1.png" id="theme-icon" alt="theme toggle">
+    </button>
+
     <div class="map-copyright">UB Bus Routes &copy; 2026 The2m16</div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -290,9 +326,35 @@
     <script>
         const map = L.map('map', {zoomControl: false, attributionControl: false}).setView([47.9188, 106.9176], 13);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        const darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             maxZoom: 20,
-        }).addTo(map); 
+        });
+
+        const lightTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+        });
+
+        darkTile.addTo(map);
+        let isDark = true;
+
+        const themeBtn = document.getElementById('theme-btn');
+        const themeIcon = document.getElementById('theme-icon');
+
+        themeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isDark) {
+                map.removeLayer(darkTile);
+                lightTile.addTo(map);
+                themeIcon.src = 'day_and_night2.png';
+                isDark = false;
+            } else {
+                map.removeLayer(lightTile);
+                darkTile.addTo(map);
+                themeIcon.src = 'day_and_night1.png';
+                isDark = true;
+            }
+        });
 
         const activeMarkers = {};
 
