@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="mn">
 <head>
@@ -390,6 +391,20 @@
 
         const activeMarkers = {};
 
+        // Zoom level-д суурилсан динамик radius тооцоолох функц
+        // zoom 12 → r=2, zoom 15 → r=4, zoom 18 → r=7 гэх мэт жигд өсөлт
+        function getRadiusByZoom(zoom) {
+            return Math.max(2, Math.min(8, (zoom - 10) * 0.8));
+        }
+
+        // Zoom өөрчлөгдөх бүрт бүх маркерын radius шинэчлэх
+        map.on('zoomend', function() {
+            const r = getRadiusByZoom(map.getZoom());
+            Object.values(activeMarkers).forEach(markerArr => {
+                markerArr.forEach(m => m.setRadius(r));
+            });
+        });
+
 // байршил тогтоох логик
 const locateBtn = document.getElementById('locate-btn');
 let userLocationMarker = null;
@@ -608,7 +623,7 @@ function showRouteStations(routeAlias) {
 
             // Дугуй маркер үүсгэх тохиргоо (Цагаан хүрээтэй)
             const marker = L.circleMarker([lat, lng], {
-                radius: 2,
+                radius: getRadiusByZoom(map.getZoom()),
                 fillColor: "#38bdf8",
                 color: "#000000", 
                 weight: 20,
