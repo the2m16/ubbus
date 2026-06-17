@@ -316,7 +316,7 @@
     </svg> </button>
 
     <button class="theme-btn" id="theme-btn" title="Өдөр/Шөнийн горим">
-        <img src="day_and_night1.png" id="theme-icon" alt="theme toggle">
+        <img src="daynight1.png" id="theme-icon" alt="theme toggle">
     </button>
 
     <div class="map-copyright">UB Bus Routes &copy; 2026 The2m16</div>
@@ -346,12 +346,12 @@
             if (isDark) {
                 map.removeLayer(darkTile);
                 lightTile.addTo(map);
-                themeIcon.src = 'day_and_night2.png';
+                themeIcon.src = 'daynight2.png';
                 isDark = false;
             } else {
                 map.removeLayer(lightTile);
                 darkTile.addTo(map);
-                themeIcon.src = 'day_and_night1.png';
+                themeIcon.src = 'daynight1.png';
                 isDark = true;
             }
         });
