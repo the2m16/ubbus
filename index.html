@@ -152,8 +152,8 @@
     position: absolute;
     bottom: 24px;
     right: 24px;
-    width: 25px;
-    height: 25px;
+    width: 44px;
+    height: 44px;
     background: #ffffff;
     border: none;
     border-radius: 50%;
@@ -238,8 +238,8 @@
     position: absolute;
     top: 24px;
     right: 24px;
-    width: 25px;
-    height: 25px;
+    width: 24px;
+    height: 24px;
     background: none;
     border: none;
     border-radius: 50%;
@@ -346,12 +346,12 @@
             if (isDark) {
                 map.removeLayer(darkTile);
                 lightTile.addTo(map);
-                themeIcon.src = 'daynight2.png';
+                themeIcon.src = 'daynight1.png';
                 isDark = false;
             } else {
                 map.removeLayer(lightTile);
                 darkTile.addTo(map);
-                themeIcon.src = 'daynight1.png';
+                themeIcon.src = 'daynight2.png';
                 isDark = true;
             }
         });
