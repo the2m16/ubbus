@@ -460,7 +460,7 @@
 
         if (searchInput) searchInput.value = '';
 
-        fetch('UB_route_stations.json') 
+        fetch('ubbus.json') 
             .then(response => {
                 if (!response.ok) { throw new Error('Файлыг олсонгүй (Статус: ' + response.status + ')'); }
                 return response.json(); 
